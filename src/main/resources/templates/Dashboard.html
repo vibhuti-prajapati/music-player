@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spring Boot Music Player</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6f42c1, #6610f2);
+            color: white;
+            min-height: 100vh;
+        }
+        .player-container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .playlist-item:hover {
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="player-container">
+    <!-- Now Playing -->
+    <div class="mb-4 text-center">
+        <h3 id="nowPlayingTitle">🎧 No song playing</h3>
+        <audio id="audioPlayer" controls class="w-100 mt-2">
+            <source id="audioSource" src="" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+
+    <!-- Playlist -->
+    <div class="mb-4">
+        <h4>🎵 Playlist</h4>
+        <ul id="playlist" class="list-group text-dark">
+            <!-- Songs will be listed here dynamically -->
+        </ul>
+    </div>
+
+    <!-- Upload -->
+    <div>
+        <h4>⬆️ Upload New Song</h4>
+        <form id="uploadForm" method="post" action="/upload">
+            <div class="input-group">
+                <input type="file" id="fileInput" class="form-control" accept="audio/*" required>
+                <button class="btn btn-success" type="submit">Upload</button>
+            </div>
+        </form>
+        <div id="uploadStatus" class="mt-2"></div>
+    </div>
+</div>
+
+<script>
+    const playlistElement = document.getElementById('playlist');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const audioSource = document.getElementById('audioSource');
+    const nowPlayingTitle = document.getElementById('nowPlayingTitle');
+
+    // Load playlist from backend
+    async function loadPlaylist() {
+        playlistElement.innerHTML = '';
+        const response = await fetch('http://localhost:8080/api/music/list');
+        const songs = await response.json();
+        songs.forEach(song => {
+            const li = document.createElement('li');
+            li.textContent = song;
+            li.className = 'list-group-item playlist-item';
+            li.addEventListener('click', () => playSong(song));
+            playlistElement.appendChild(li);
+        });
+    }
+
+    // Play selected song
+    function playSong(song) {
+        audioSource.src = `http://localhost:8080/api/music/play/${song}`;
+        audioPlayer.load();
+        audioPlayer.play();
+        nowPlayingTitle.textContent = `🎶 Now Playing: ${song}`;
+    }
+
+    // Handle file upload
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:8080/api/music/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const message = await response.text();
+        document.getElementById('uploadStatus').textContent = message;
+
+        loadPlaylist();
+    });
+
+    // Load songs on page load
+    loadPlaylist();
+</script>
+
+</body>
+</html>
