@@ -35,6 +35,10 @@
             Your browser does not support the audio element.
         </audio>
     </div>
+    <div class="text-center mt-3">
+        <button class="btn btn-light mx-2" onclick="moveToPrevSong()">⏮️ Previous</button>
+        <button class="btn btn-light mx-2" onclick="moveToNextSong()">⏭️ Next</button>
+    </div>
 
     <!-- Playlist -->
     <div class="mb-4">
@@ -63,16 +67,23 @@
     const audioSource = document.getElementById('audioSource');
     const nowPlayingTitle = document.getElementById('nowPlayingTitle');
 
+    let playList = [];
+    let currentSongIndex=0;
+
     // Load playlist from backend
     async function loadPlaylist() {
         playlistElement.innerHTML = '';
         const response = await fetch('http://localhost:8080/api/music/list');
         const songs = await response.json();
+        playList = songs;
         songs.forEach(song => {
             const li = document.createElement('li');
             li.textContent = song;
             li.className = 'list-group-item playlist-item';
-            li.addEventListener('click', () => playSong(song));
+            li.addEventListener('click', () => {
+                    playSong(song)
+                }
+            );
             playlistElement.appendChild(li);
         });
     }
@@ -83,6 +94,27 @@
         audioPlayer.load();
         audioPlayer.play();
         nowPlayingTitle.textContent = `🎶 Now Playing: ${song}`;
+        currentSongIndex = playList.indexOf(song)
+        console.log("current song = "+ song)
+        highlightCurrentSong();
+    }
+
+    // play the next song in playlist
+    function moveToNextSong(){
+        currentSongIndex++;
+        if (currentSongIndex >= playList.length) {
+            currentSongIndex = 0; // loop back or stop
+        }
+        console.log("moving to next song");
+        playSong(playList[currentSongIndex]);
+    }
+    // play the previous song in playlist
+    function moveToPrevSong() {
+        currentSongIndex--;
+        if (currentSongIndex < 0) {
+            currentSongIndex = playList.length - 1;
+        }
+        playSong(playList[currentSongIndex]);
     }
 
     // Handle file upload
@@ -104,6 +136,16 @@
 
         loadPlaylist();
     });
+
+    // handle moving to next song
+    audioPlayer.addEventListener('ended',moveToNextSong);
+
+    // highlight current playing song
+    function highlightCurrentSong() {
+        document.querySelectorAll('.playlist-item').forEach((li, index) => {
+            li.classList.toggle('active', index === currentSongIndex);
+        });
+    }
 
     // Load songs on page load
     loadPlaylist();
